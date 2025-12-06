@@ -116,6 +116,10 @@ Feel free to open issues or submit PRs if you want to:
 * Add topic modeling (LDA)
 * Support DOCX / TXT upload
 
+---
+
+## 🔗 Link To StreamLit Web App
+link:  https://paragraphsementicanalyzer-48inadmfmxgsvhuzz9fjuz.streamlit.app/
 
 
 
