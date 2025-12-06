@@ -19,7 +19,9 @@ from nltk.sentiment import SentimentIntensityAnalyzer
 import PyPDF2
 
 # Ensure required NLTK packages are available
+# Ensure required NLTK packages are available
 nltk.download("punkt")
+nltk.download("punkt_tab")      # ← NEW FIX
 nltk.download("stopwords")
 nltk.download("vader_lexicon")
 
