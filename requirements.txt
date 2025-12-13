@@ -6,5 +6,4 @@ matplotlib
 nltk
 textblob
 wordcloud
-scikit-learn
-tqdm
+scikit-learn>=1.4
