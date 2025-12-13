@@ -20,9 +20,24 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, classification_report
 
 
-# ------------------ NLTK Downloads ------------------
-nltk.download("punkt")
-nltk.download("stopwords")
+# ------------------ Streamlit Config ------------------
+st.set_page_config(
+    page_title="PDF Sentiment Analysis App",
+    layout="wide"
+)
+
+st.title("📊 PDF Sentiment Analysis & NLP Dashboard")
+st.write("Upload a PDF to perform sentiment analysis, NLP processing, and ML modeling.")
+
+# ------------------ NLTK Downloads (STREAMLIT SAFE) ------------------
+@st.cache_resource
+def download_nltk_resources():
+    nltk.download("punkt")
+    nltk.download("punkt_tab")
+    nltk.download("stopwords")
+
+download_nltk_resources()
+
 
 # ------------------ Helper Functions ------------------
 def preprocess_text(text):
@@ -48,13 +63,8 @@ def analyze_sentiment(text):
 label_map = {"Negative": -1, "Neutral": 0, "Positive": 1}
 
 
-# ------------------ Streamlit UI ------------------
-st.set_page_config(page_title="PDF Sentiment Analysis App", layout="wide")
-
-st.title("📊 PDF Sentiment Analysis & NLP Dashboard")
-st.write("Upload a PDF to analyze sentiment, word frequency, word cloud, and ML models.")
-
-uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
+# ------------------ File Upload ------------------
+uploaded_file = st.file_uploader("📄 Upload PDF File", type=["pdf"])
 
 if uploaded_file:
     # ------------------ Read PDF ------------------
@@ -63,13 +73,13 @@ if uploaded_file:
 
     all_text = ""
     for page in pages:
-        text = page.extract_text()
-        if text:
-            all_text += text + "\n"
+        page_text = page.extract_text()
+        if page_text:
+            all_text += page_text + "\n"
 
     st.success(f"PDF loaded successfully — {len(pages)} pages")
 
-    # ------------------ Preprocess ------------------
+    # ------------------ Preprocessing ------------------
     clean_text = preprocess_text(all_text)
 
     # ------------------ Sentence Tokenization ------------------
@@ -82,9 +92,10 @@ if uploaded_file:
     st.subheader("📈 Sentiment Distribution")
     st.bar_chart(df_sentences["sentiment"].value_counts())
 
-    # ------------------ Tokenization ------------------
+    # ------------------ Word Tokenization ------------------
     words = word_tokenize(clean_text)
     words = [w for w in words if w.isalnum()]
+
     stop_words = set(stopwords.words("english"))
     words = [w for w in words if w not in stop_words and len(w) > 2]
 
@@ -118,23 +129,32 @@ if uploaded_file:
     st.subheader("📊 Document-Term Matrix (CountVectorizer)")
     st.dataframe(cv_df.head())
 
-    # ------------------ TF-IDF ------------------
+    # ------------------ TF-IDF Vectorizer ------------------
     tfidf = TfidfVectorizer(max_features=300, stop_words="english")
     X_tfidf = tfidf.fit_transform(df_sentences["sentence"])
     tfidf_df = pd.DataFrame(X_tfidf.toarray(), columns=tfidf.get_feature_names_out())
 
-    # ------------------ ML Preparation ------------------
+    # ------------------ ML Dataset ------------------
     y = df_sentences["sentiment"].map(label_map)
+
     X_train, X_test, y_train, y_test = train_test_split(
-        tfidf_df, y, test_size=0.2, random_state=42, stratify=y
+        tfidf_df,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y
     )
 
     # ------------------ Logistic Regression ------------------
-    lr = LogisticRegression(max_iter=1000, solver="saga", multi_class="multinomial")
+    lr = LogisticRegression(
+        max_iter=1000,
+        solver="saga",
+        multi_class="multinomial"
+    )
     lr.fit(X_train, y_train)
     y_pred_lr = lr.predict(X_test)
 
-    st.subheader("🤖 Logistic Regression Results")
+    st.subheader("🤖 Logistic Regression")
     st.write("Accuracy:", accuracy_score(y_test, y_pred_lr))
     st.text(classification_report(y_test, y_pred_lr))
 
@@ -143,7 +163,7 @@ if uploaded_file:
     dt.fit(X_train, y_train)
     y_pred_dt = dt.predict(X_test)
 
-    st.subheader("🌳 Decision Tree Results")
+    st.subheader("🌳 Decision Tree")
     st.write("Accuracy:", accuracy_score(y_test, y_pred_dt))
     st.text(classification_report(y_test, y_pred_dt))
 
@@ -151,7 +171,7 @@ if uploaded_file:
     nb = MultinomialNB()
     nb.fit(tfidf_df, y)
 
-    st.subheader("📘 Naive Bayes Results")
+    st.subheader("📘 Naive Bayes")
     st.write("Training Accuracy:", nb.score(tfidf_df, y))
 
-    st.success("✅ Analysis Complete")
+    st.success("✅ Analysis completed successfully")
