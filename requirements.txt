@@ -1,8 +1,8 @@
 streamlit
 PyPDF2
 pandas
-matplotlib
 numpy
+matplotlib
 nltk
 textblob
 wordcloud
