@@ -1,8 +1,10 @@
 streamlit
-pandas
-numpy
-scikit-learn
-nltk
 PyPDF2
-wordcloud
+pandas
 matplotlib
+numpy
+nltk
+textblob
+wordcloud
+scikit-learn
+tqdm
