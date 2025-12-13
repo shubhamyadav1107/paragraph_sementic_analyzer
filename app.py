@@ -21,22 +21,18 @@ from sklearn.metrics import accuracy_score, classification_report
 
 
 # ------------------ Streamlit Config ------------------
-st.set_page_config(
-    page_title="PDF Sentiment Analysis App",
-    layout="wide"
-)
-
+st.set_page_config(page_title="PDF Sentiment Analysis", layout="wide")
 st.title("📊 PDF Sentiment Analysis & NLP Dashboard")
-st.write("Upload a PDF to perform sentiment analysis, NLP processing, and ML modeling.")
 
-# ------------------ NLTK Downloads (STREAMLIT SAFE) ------------------
+
+# ------------------ NLTK Downloads (Streamlit-safe) ------------------
 @st.cache_resource
-def download_nltk_resources():
+def download_nltk():
     nltk.download("punkt")
     nltk.download("punkt_tab")
     nltk.download("stopwords")
 
-download_nltk_resources()
+download_nltk()
 
 
 # ------------------ Helper Functions ------------------
@@ -63,51 +59,48 @@ def analyze_sentiment(text):
 label_map = {"Negative": -1, "Neutral": 0, "Positive": 1}
 
 
-# ------------------ File Upload ------------------
-uploaded_file = st.file_uploader("📄 Upload PDF File", type=["pdf"])
+# ------------------ Upload PDF ------------------
+uploaded_file = st.file_uploader("📄 Upload PDF", type=["pdf"])
 
 if uploaded_file:
-    # ------------------ Read PDF ------------------
     reader = PdfReader(uploaded_file)
     pages = reader.pages
 
     all_text = ""
     for page in pages:
-        page_text = page.extract_text()
-        if page_text:
-            all_text += page_text + "\n"
+        if page.extract_text():
+            all_text += page.extract_text() + "\n"
 
-    st.success(f"PDF loaded successfully — {len(pages)} pages")
+    st.success(f"Loaded {len(pages)} pages")
 
     # ------------------ Preprocessing ------------------
     clean_text = preprocess_text(all_text)
 
     # ------------------ Sentence Tokenization ------------------
     sentences = sent_tokenize(clean_text)
-    df_sentences = pd.DataFrame(sentences, columns=["sentence"])
+    df = pd.DataFrame(sentences, columns=["sentence"])
 
-    # ------------------ Sentiment Analysis ------------------
-    df_sentences["sentiment"] = df_sentences["sentence"].apply(analyze_sentiment)
+    # ------------------ Sentiment ------------------
+    df["sentiment"] = df["sentence"].apply(analyze_sentiment)
 
     st.subheader("📈 Sentiment Distribution")
-    st.bar_chart(df_sentences["sentiment"].value_counts())
+    st.bar_chart(df["sentiment"].value_counts())
 
-    # ------------------ Word Tokenization ------------------
+    # ------------------ Tokenization ------------------
     words = word_tokenize(clean_text)
     words = [w for w in words if w.isalnum()]
 
     stop_words = set(stopwords.words("english"))
     words = [w for w in words if w not in stop_words and len(w) > 2]
 
-    # ------------------ Word Frequency ------------------
-    freq_dist = FreqDist(words)
-    freq_df = pd.DataFrame(freq_dist.most_common(20), columns=["Word", "Frequency"])
+    # ------------------ Frequency ------------------
+    freq = FreqDist(words)
+    freq_df = pd.DataFrame(freq.most_common(20), columns=["Word", "Frequency"])
 
-    st.subheader("🔤 Top 20 Frequent Words")
+    st.subheader("🔤 Top 20 Words")
     st.dataframe(freq_df)
 
     # ------------------ Word Cloud ------------------
-    st.subheader("☁️ Word Cloud")
     wc = WordCloud(
         width=1000,
         height=500,
@@ -121,35 +114,21 @@ if uploaded_file:
     ax.axis("off")
     st.pyplot(fig)
 
-    # ------------------ Count Vectorizer ------------------
-    cv = CountVectorizer(max_features=30, stop_words="english")
-    cv_matrix = cv.fit_transform(df_sentences["sentence"])
-    cv_df = pd.DataFrame(cv_matrix.toarray(), columns=cv.get_feature_names_out())
-
-    st.subheader("📊 Document-Term Matrix (CountVectorizer)")
-    st.dataframe(cv_df.head())
-
-    # ------------------ TF-IDF Vectorizer ------------------
+    # ------------------ Vectorization ------------------
     tfidf = TfidfVectorizer(max_features=300, stop_words="english")
-    X_tfidf = tfidf.fit_transform(df_sentences["sentence"])
-    tfidf_df = pd.DataFrame(X_tfidf.toarray(), columns=tfidf.get_feature_names_out())
+    X = tfidf.fit_transform(df["sentence"])
+    X_df = pd.DataFrame(X.toarray(), columns=tfidf.get_feature_names_out())
 
-    # ------------------ ML Dataset ------------------
-    y = df_sentences["sentiment"].map(label_map)
+    y = df["sentiment"].map(label_map)
 
     X_train, X_test, y_train, y_test = train_test_split(
-        tfidf_df,
-        y,
-        test_size=0.2,
-        random_state=42,
-        stratify=y
+        X_df, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    # ------------------ Logistic Regression ------------------
+    # ------------------ Logistic Regression (FIXED) ------------------
     lr = LogisticRegression(
         max_iter=1000,
-        solver="saga",
-        multi_class="multinomial"
+        solver="saga"
     )
     lr.fit(X_train, y_train)
     y_pred_lr = lr.predict(X_test)
@@ -169,9 +148,9 @@ if uploaded_file:
 
     # ------------------ Naive Bayes ------------------
     nb = MultinomialNB()
-    nb.fit(tfidf_df, y)
+    nb.fit(X_df, y)
 
     st.subheader("📘 Naive Bayes")
-    st.write("Training Accuracy:", nb.score(tfidf_df, y))
+    st.write("Training Accuracy:", nb.score(X_df, y))
 
-    st.success("✅ Analysis completed successfully")
+    st.success("✅ App ran successfully without errors")
